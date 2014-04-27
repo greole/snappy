@@ -14,7 +14,6 @@
         --gif               Create gifs
         --clean             Remove existing anim folder
         --update            Write till latest previously written snapshot
-        --start=frame       Start from frame till final frame
 """
 
 import json
@@ -96,7 +95,6 @@ class animator():
              config=False,
              interpolate=False,
              update=False,
-             stop_frame=False
              cam_shift=1,
              cam_view_up=2,
              slice_normal=[0, -1, 0],
@@ -125,7 +123,7 @@ class animator():
         self.reprSlice = self.slice_domain()
         self.color_map = self.create_colormap()
         self.setup_camera()
-        self.set_times(start_frame, stop_frame)
+        self.set_times()
 
     def read_config(self, fn):
         "read config file from script loc if no fn is given"
@@ -156,7 +154,7 @@ class animator():
         times = self.reader.TimestepValues
         self.total_times = len(times)
         
-        self.times = (times[::-1][:self.ntimes] if not self.anim else times[:stop_frame:-1])
+        self.times = (times[::-1][:self.ntimes] if not self.anim else times[::-1])
 
     def setup_view(self, image_size=[780, 780]):
        self.view = CreateRenderView()
