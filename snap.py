@@ -5,12 +5,14 @@
        
     Options:
         -h --help           Show this screen 
-        -p --parallel       Case is decomposed
+        -d --decomposed     Case is decomposed
         -a --all            Process all times, otherwise last time step only
         -i --interpolate    Write images with interpolated fields
         --nlatest=num       Process only n latest time steps
         --slice=dir         Slice normal, default=y
         --config=file       Specify config file
+        --vectors=fields    Explicit list of vector fields to read
+        --scalars=fields    Explicit list of vector fields to read
         --gif               Create gifs
         --clean             Remove existing anim folder
         --update            Write till latest previously written snapshot
@@ -86,8 +88,7 @@ def convert_to_gif(fields):
             pass
 
 class animator():
-    """  wrapper class to handle python-paraview
-    """
+    """  wrapper class to handle python-paraview """
 
     def __init__(self, 
              animate=False,
@@ -99,6 +100,8 @@ class animator():
              cam_view_up=2,
              slice_normal=[0, -1, 0],
              ntimes=1,
+             vectors=False,
+             scalars=False,
             ):
 
         self.slice_normal = slice_normal
@@ -108,8 +111,8 @@ class animator():
         self.decomp = decomposed
         self.conf = self.read_config(config)
         self.path = os.getcwd()
-        self.scalars = self.conf['scalars']
-        self.vectors = self.conf['vectors']
+        self.scalars = (self.conf['scalars'] if not scalars else {key:'auto' for key in scalars.split(',')})
+        self.vectors = (self.conf['vectors'] if not vectors else {key:'auto' for key in vectors.split(',')})
         self.ntimes = ntimes
         self.interpolate = interpolate
         self.autoscaled = {}
@@ -276,14 +279,8 @@ if __name__ == '__main__':
     arguments = docopt(__doc__)
     if arguments['--clean']: shutil.rmtree('anim')
     if not os.path.exists('anim'): os.makedirs('anim')
-    config = arguments['--config']
-    decomposed = (True if arguments['--parallel'] else False)
-    animate = (True if arguments['--all'] else False)
-    interpolate = (True if arguments['--interpolate'] else False)
-    update = (True if arguments['--update'] else False)
     #fetch_fields = (False if arguments['--all-fields'] else True)
     cam_shift = cam_view_up = slice_normal = False
-    ntimes = (int(arguments['--nlatest']) if arguments['--nlatest'] else 1)
 
     if arguments['--nlatest'] and arguments['--all']:
         print "cannot use --nlatest and --all at the same time"
@@ -298,14 +295,20 @@ if __name__ == '__main__':
         cam_view_up = 1
         slice_normal = [0, 0, 1]
 
-    anim  = animator(animate, decomposed, config,
-                     interpolate,
-                     update,
-                     cam_shift,
-                     cam_view_up,
-                     slice_normal,
-                     ntimes
-                    )
+    anim = animator(
+        animate=arguments['--all'],
+        decomposed=arguments['--decomposed'],
+        config=arguments['--config'],
+        interpolate=arguments['--interpolate'],
+        update=arguments['--update'],
+        cam_shift=cam_shift,
+        cam_view_up=cam_view_up,
+        slice_normal=slice_normal,
+        ntimes=(int(arguments['--nlatest']) if arguments['--nlatest'] else 1),
+        vectors=arguments['--vectors'],
+        scalars=arguments['--scalars'],
+        )
+
     anim.write_all_fields()
     
     if arguments['--gif']:
