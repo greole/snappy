@@ -8,6 +8,7 @@
         -d --decomposed     Case is decomposed
         -a --all            Process all times, otherwise last time step only
         -i --interpolate    Write images with interpolated fields
+        -w --watch          leave snappy alive and make snapshots continuosly
         --nlatest=num       Process only n latest time steps
         --slice=dir         Slice normal, default=y
         --config=file       Specify config file
@@ -274,9 +275,8 @@ class animator():
         WriteImage(image_name)
         print "written : " + image_name.split('/')[-1]
 
-if __name__ == '__main__':
+def main(arguments):
 
-    arguments = docopt(__doc__)
     if arguments['--clean']: shutil.rmtree('anim')
     if not os.path.exists('anim'): os.makedirs('anim')
     #fetch_fields = (False if arguments['--all-fields'] else True)
@@ -314,3 +314,19 @@ if __name__ == '__main__':
     if arguments['--gif']:
         convert_to_gif(anim.scalars)
         convert_to_gif(anim.vectors)
+
+def latestTime(arguments):
+    return max(os.listdir('processor0'), key = os.path.getctime)
+
+if __name__ == '__main__':
+    arguments = docopt(__doc__)
+    if arguments['--watch']:
+        old_latest_time = str
+        while True:
+            latestTime = latestTime(arguments)
+            if latestTime != old_latest_time:
+                main(arguments)
+                old_latest_time = latestTime
+            os.sleep(1)
+    else:
+        main(arguments)
