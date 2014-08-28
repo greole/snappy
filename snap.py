@@ -8,7 +8,7 @@
         -d --decomposed     Case is decomposed
         -a --all            Process all times, otherwise last time step only
         -i --interpolate    Write images with interpolated fields
-        -w --watch          leave snappy alive and make snapshots continuosly
+        --watch=<dir0,dir1> leave snappy alive and make snapshots continuosly
         --nlatest=num       Process only n latest time steps
         --slice=dir         Slice normal, default=y
         --config=file       Specify config file
@@ -28,6 +28,7 @@ from docopt import docopt
 import subprocess
 import shutil
 from copy import deepcopy
+import time
 #os.environ['DISPLAY'] = ":0"
 
 def make_color_map(servermanager):
@@ -316,17 +317,28 @@ def main(arguments):
         convert_to_gif(anim.vectors)
 
 def latestTime(arguments):
-    return max(os.listdir('processor0'), key = os.path.getctime)
+    p = "./processor0/"
+    return max([p + _ for _ in os.listdir(p)], key = os.path.getctime)
 
 if __name__ == '__main__':
     arguments = docopt(__doc__)
     if arguments['--watch']:
-        old_latest_time = str
+        from collections import defaultdict
+        old_latest_time = defaultdict(int)
+        cases  = arguments['--watch'].split(',')
         while True:
-            latestTime = latestTime(arguments)
-            if latestTime != old_latest_time:
-                main(arguments)
-                old_latest_time = latestTime
-            os.sleep(1)
+            for case in cases:
+                old_pwd = os.getcwd()
+                os.chdir(case)
+                print "waiting"
+                latestTime_ = latestTime(arguments)
+                if latestTime_ != old_latest_time[case]:
+                    try:
+                        old_latest_time[case] = latestTime_
+                        main(arguments)
+                    except:
+                        pass
+                os.chdir(old_pwd)
+                time.sleep(60)
     else:
         main(arguments)
